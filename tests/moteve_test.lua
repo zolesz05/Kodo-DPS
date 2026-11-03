@@ -328,7 +328,7 @@ local OLD_SESSION = {
 }
 
 local function pickerBoot(db)
-    W.Boot({ db = db, sessions = pastFights(13), sessionsByID = { [7] = OLD_SESSION } })
+    W.Boot({ db = db, sessions = pastFights(13), sessionsByID = { [5] = OLD_SESSION, [7] = OLD_SESSION } })
     W.session = CURRENT_SESSION
     for _, w in ipairs({ MoteveFrame, MoteveFrame2 }) do w:Refresh() end
 end
@@ -381,7 +381,7 @@ test("a secret or missing fight name falls back to N. harc next to the duration"
         { sessionID = 6, name = "", durationSeconds = 5 },
         { sessionID = 5, name = "No clock" },
         { sessionID = W.Secret(4), name = "Secret ID" },
-    } })
+    }, sessionsByID = { [8] = OLD_SESSION } })
     MoteveFrame:Refresh()
     W.ClickSegment(MoteveFrame)
     local texts = W.MenuTexts()
