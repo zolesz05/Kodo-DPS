@@ -1,6 +1,6 @@
 # Moteve Damage Meter
 
-A **Moteve Damage Meter** egy könnyű damage meter addon a WoW Forever klienshez. A játék beépített `C_DamageMeter` adataiból mutatja a sebzést, gyógyítást, elnyelést, kapott sebzést, megszakításokat és dispeleket, egy külön módban pedig a csapat fenyegetését a célpontodon. Egyszerre legfeljebb négy ablak lehet nyitva, a Moteve addonok „arkán üveg” stílusában: keret nélkül, halvány háttérrel és vékony, izzó, kasztszínű vonalakkal.
+A **Moteve Damage Meter** egy könnyű damage meter addon a WoW Forever klienshez. A játék beépített `C_DamageMeter` adataiból mutatja a sebzést, gyógyítást, elnyelést, kapott sebzést, megszakításokat és dispeleket, egy külön módban pedig a csapat threat-jét a célpontodon. Egyszerre legfeljebb négy ablak lehet nyitva, a Moteve addonok „arkán üveg” stílusában: keret nélkül, halvány háttérrel és vékony, izzó, kasztszínű vonalakkal.
 
 **Aktuális verzió: 0.5.0**
 
@@ -33,10 +33,10 @@ A mappanevet tartsd meg: a `Moteve Damage Meter.toc` közvetlenül a `Moteve Dam
 - Soronként: helyezés, név kasztszínnel, összeg, DPS/HPS és százalék. A név alatti vékony, kasztszínű vonal mutatja az arányt; a lila pötty jelöli a saját karaktered.
 - A százalék harc után jelenik meg, kb. 270 px-nél szélesebb ablakban.
 - A fejlécben a mód neve látható. Rákattintva lenyíló menü nyílik:
-  - mód: **Sebzés**, **Gyógyítás**, **Elnyelés**, **Kapott sebzés**, **Megszakítások**, **Dispelek**, **Fenyegetés**;
-  - időszak: **Aktuális harc** vagy **Összesített** (fenyegetés módban nincs);
+  - mód: **Sebzés**, **Gyógyítás**, **Elnyelés**, **Kapott sebzés**, **Megszakítások**, **Dispelek**, **Threat**;
+  - időszak: **Aktuális harc** vagy **Összesített** (threat módban nincs);
   - adatok törlése, az ablak zárolása és **Ablak eltávolítása**.
-- A fejléc jobb felső sarkában az **Aktuális** felirat egy harcválasztó. Rákattintva az aktuális harc mellett a játék által még tárolt korábbi, lezárt harcok közül választhatsz: legfeljebb 10 közül, a legújabb van elöl, névvel és időtartammal. Az ablak ekkor annak a harcnak a sorait, spellenkénti bontását és összesítő sorát mutatja, a fejlécben pedig a harc neve látszik. Ha a név nem ismert vagy titkos, „N. harc” jelenik meg. A választó csak **Aktuális harc** időszakban és fenyegetés módon kívül működik. Új harc kezdetekor, az adatok törlésekor, időszakváltáskor és `/reload` után az ablak visszaáll **Aktuális**-ra. A kiválasztás ablakonként külön van, és nem mentődik. Ha a kiválasztott harcot a játék már nem tárolja, az ablak az aktuális harcot mutatja.
+- A fejléc jobb felső sarkában az **Aktuális** felirat egy harcválasztó. Rákattintva az aktuális harc mellett a játék által még tárolt korábbi, lezárt harcok közül választhatsz: legfeljebb 10 közül, a legújabb van elöl, névvel és időtartammal. Az ablak ekkor annak a harcnak a sorait, spellenkénti bontását és összesítő sorát mutatja, a fejlécben pedig a harc neve látszik. Ha a név nem ismert vagy titkos, „N. harc” jelenik meg. A választó csak **Aktuális harc** időszakban és threat módon kívül működik. Új harc kezdetekor, az adatok törlésekor, időszakváltáskor és `/reload` után az ablak visszaáll **Aktuális**-ra. A kiválasztás ablakonként külön van, és nem mentődik. Ha a kiválasztott harcot a játék már nem tárolja, az ablak az aktuális harcot mutatja.
 - A fejléc húzásával mozgatható, a jobb alsó saroknál fogva (rámutatáskor látszik) átméretezhető. A hely és a méret mentődik.
 - Egérgörgővel a lista görgethető. Egy sorra mutatva harc után spellenkénti bontás jelenik meg.
 - A láblécben a harc hossza vagy a „Harcban” felirat, az összesített érték és a csapat-DPS látható.
@@ -45,19 +45,19 @@ A mappanevet tartsd meg: a `Moteve Damage Meter.toc` közvetlenül a `Moteve Dam
 
 Egyszerre legfeljebb **négy** ablak lehet nyitva, például egy a sebzésnek és egy a gyógyításnak. Minden ablaknak saját módja, időszaka, mérete, helye és zárolása van, és mindez `/reload` után is megmarad. Új ablakot a minimap gombbal vagy a `/moteve new` paranccsal nyithatsz; ablakot a saját menüjének **Ablak eltávolítása** pontjával vagy a minimap gomb menüjéből zárhatsz be. Az utolsó ablak nem távolítható el.
 
-### Fenyegetés mód
+### Threat mód
 
-A **Fenyegetés** mód a csapat minden tagjának (pet nélkül) fenyegetését mutatja a célpontodon; ha nincs megtámadható célpontod, a fókuszodon. Ha egyik sincs, a „Nincs célpont” felirat jelenik meg. A sor a fenyegetés százalékát mutatja, a vékony vonal 0–100%-ig telik, a ciánkék gyűrű a célpontot tankoló játékost jelöli. A fejléc jobb oldalán látszik, hogy a célpont vagy a fókusz adatai láthatók.
+A **Threat** mód a csapat minden tagjának (pet nélkül) threat-jét mutatja a célpontodon; ha nincs megtámadható célpontod, a fókuszodon. Ha egyik sincs, a „Nincs célpont” felirat jelenik meg. A sor a threat százalékát mutatja, a vékony vonal 0–100%-ig telik, a ciánkék gyűrű a célpontot tankoló játékost jelöli. A fejléc jobb oldalán látszik, hogy a célpont vagy a fókusz adatai láthatók.
 
-A **Fenyegetés ablak** egy kisebb, kompakt (200×140 px, lábléc nélküli, alacsonyabb sorokkal) ablakot nyit ebben a módban, így DPS-ként a sebzés mellett a fenyegetésre is figyelhetsz.
+A **Threat ablak** egy kisebb, kompakt (200×140 px, lábléc nélküli, alacsonyabb sorokkal) ablakot nyit ebben a módban, így DPS-ként a sebzés mellett a threat-re is figyelhetsz.
 
-A fenyegetés értékei bizonyos helyzetekben (például dungeonben, harc közben) **titkosak** lehetnek. Ilyenkor a játék még kirajzolja a sávot és a feliratot, de az addon nem rendezheti őket: a sorok csapatsorrendben maradnak, és a tank-jelölés sem jelenik meg.
+A threat értékei bizonyos helyzetekben (például dungeonben, harc közben) **titkosak** lehetnek. Ilyenkor a játék még kirajzolja a sávot és a feliratot, de az addon nem rendezheti őket: a sorok csapatsorrendben maradnak, és a tank-jelölés sem jelenik meg.
 
 ### Minimap gomb
 
 A minimap szélén egy kerek **M** gomb található.
 
-- **Bal klikk:** menü az **+ Új ablak**, **+ Fenyegetés ablak** és ablakonként egy **Eltávolítás: <n>. ablak (<mód>)** ponttal.
+- **Bal klikk:** menü az **+ Új ablak**, **+ Threat ablak** és ablakonként egy **Eltávolítás: <n>. ablak (<mód>)** ponttal.
 - **Jobb klikk:** minden ablak megjelenítése / elrejtése.
 - **Húzás:** a gomb a minimap széle mentén mozgatható, a helye mentődik.
 
@@ -75,14 +75,14 @@ A gomb a `/moteve minimap` paranccsal rejthető el és hozható vissza. Szöglet
 | `/moteve scale 1.2` | Minden ablak méretaránya (0,5–2) |
 | `/moteve center` | Minden ablak a képernyő közepére |
 | `/moteve new` | Új ablak (legfeljebb 4) |
-| `/moteve threat` | Új kompakt fenyegetés ablak |
+| `/moteve threat` | Új kompakt threat ablak |
 | `/moteve minimap` | Minimap gomb elrejtése / megjelenítése |
 
 ## Működés és korlátok
 
 WoW Foreveren az addonok nem férnek hozzá a combat loghoz, ezért a Moteve a Blizzard beépített `C_DamageMeter` adataiból dolgozik. Harc közben a nevek és a számok „titkos” értékek: a játék megjeleníti őket, de az addon nem számolhat velük, ezért a százalék és a spellenkénti bontás csak harc után jelenik meg.
 
-A fenyegetés mód nem a `C_DamageMeter`, hanem a játék fenyegetés-adatai (`UnitDetailedThreatSituation`) alapján dolgozik. Ezek az értékek is lehetnek titkosak, ilyenkor a sorrend a csapat sorrendje marad.
+A threat mód nem a `C_DamageMeter`, hanem a játék threat-adatai (`UnitDetailedThreatSituation`) alapján dolgozik. Ezek az értékek is lehetnek titkosak, ilyenkor a sorrend a csapat sorrendje marad.
 
 Ha nincs adat, kapcsold be a játék saját damage meterét a beállításokban; az ablaka utána elrejthető.
 

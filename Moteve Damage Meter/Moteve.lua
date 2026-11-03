@@ -58,7 +58,7 @@ local MODES = {
     { id = T.DamageTaken or 7, label = "Kapott sebzés",   rate = "DTPS" },
     { id = T.Interrupts  or 5, label = "Megszakítások" },
     { id = T.Dispels     or 6, label = "Dispelek" },
-    { id = "threat",           label = "Fenyegetés",      kind = "threat" },
+    { id = "threat",           label = "Threat",          kind = "threat" },
 }
 local THREAT_MODE
 for i, m in ipairs(MODES) do if m.kind == "threat" then THREAT_MODE = i end end
@@ -411,7 +411,7 @@ local function ThreatTooltip(row)
         GameTooltip:AddLine("Az értékek most titkosak, csak a sáv és a felirat látszik.", C.muted[1], C.muted[2], C.muted[3])
     else
         local r, g, b = C.text[1], C.text[2], C.text[3]
-        if e.scaled ~= nil then GameTooltip:AddDoubleLine("Fenyegetés", format("%.0f%%", e.scaled), 1, 1, 1, r, g, b) end
+        if e.scaled ~= nil then GameTooltip:AddDoubleLine("Threat", format("%.0f%%", e.scaled), 1, 1, 1, r, g, b) end
         if e.raw ~= nil then GameTooltip:AddDoubleLine("Nyers", format("%.0f%%", e.raw), 1, 1, 1, r, g, b) end
         if e.value ~= nil then GameTooltip:AddDoubleLine("Érték", Short(e.value), 1, 1, 1, r, g, b) end
     end
@@ -802,7 +802,7 @@ local function RefreshThreat(win, n, mode)
         if e then list[#list + 1] = e end
     end
     if #list == 0 then
-        return ShowEmpty(win, n, "Nincs fenyegetés", "A célpont még nem harcol a csoporttal.")
+        return ShowEmpty(win, n, "Nincs threat", "A célpont még nem harcol a csoporttal.")
     end
     win.emptyText:Hide(); win.emptySub:Hide()
 
@@ -1242,7 +1242,7 @@ local function OpenMinimapMenu(anchor)
     local spec = {
         { kind = "header", text = "MOTEVE" },
         { kind = "option", text = "+ Új ablak", onClick = function() AddWindow() end },
-        { kind = "option", text = "+ Fenyegetés ablak", onClick = function() AddWindow(PRESET_THREAT) end },
+        { kind = "option", text = "+ Threat ablak", onClick = function() AddWindow(PRESET_THREAT) end },
         { kind = "sep" },
         { kind = "header", text = "ABLAKOK" },
     }

@@ -175,11 +175,11 @@ local GROUP = {
     target = { name = "Boar" },
 }
 
-test("MODES has a Fenyegetés entry in the dropdown", function()
+test("MODES has a Threat entry in the dropdown", function()
     W.Boot({})
     W.Fire(MoteveFrame.modeBtn, "OnClick")
-    truthy(contains(W.MenuTexts(), "Fenyegetés"))
-    truthy(W.ClickMenu("Fenyegetés"))
+    truthy(contains(W.MenuTexts(), "Threat"))
+    truthy(W.ClickMenu("Threat"))
     eq(MoteveDB.windows[1].mode, THREAT)
 end)
 
@@ -206,7 +206,7 @@ test("threat mode uses an attackable target, sorts plain values and marks the ta
     -- the tooltip makes no C_DamageMeter call either
     W.Fire(rows[1], "OnEnter")
     eq(#W.dmCalls, 0, "no C_DamageMeter call from the tooltip")
-    truthy(contains(GameTooltip.lines, "Fenyegetés|100%"), "tooltip shows threat")
+    truthy(contains(GameTooltip.lines, "Threat|100%"), "tooltip shows threat")
 end)
 
 test("threat mode falls back to the focus when the target cannot be attacked", function()
@@ -228,6 +228,15 @@ test("threat mode shows Nincs célpont without target and focus", function()
     eq(#shownRows(win), 0)
     eq(#W.threatCalls, 0)
     eq(#W.dmCalls, 0)
+end)
+
+test("threat mode shows Nincs threat when the target is not in combat with the group", function()
+    local win = threatBoot({ units = GROUP, party = true, attackable = { target = true } })
+    truthy(#W.threatCalls > 0)
+    eq(win.emptyText:GetText(), "Nincs threat")
+    eq(win.emptyText:IsShown(), true)
+    eq(win.emptySub:GetText(), "A célpont még nem harcol a csoporttal.")
+    eq(#shownRows(win), 0)
 end)
 
 test("secret threat values keep roster order and only reach SetValue/SetText", function()
@@ -287,7 +296,7 @@ end)
 ---------------------------------------------------------------------------
 -- Compact threat window
 ---------------------------------------------------------------------------
-test("the Fenyegetés ablak preset is a compact 200x140 threat window", function()
+test("the Threat ablak preset is a compact 200x140 threat window", function()
     W.Boot({ units = GROUP, party = true, attackable = { target = true },
         threat = {}, })
     W.Slash("threat")
@@ -594,10 +603,10 @@ test("minimap left click opens the window menu, right click toggles all windows"
     local b = MoteveMinimapButton
     W.Fire(b, "OnClick", "LeftButton")
     local texts = W.MenuTexts()
-    truthy(contains(texts, "+ Új ablak")); truthy(contains(texts, "+ Fenyegetés ablak"))
+    truthy(contains(texts, "+ Új ablak")); truthy(contains(texts, "+ Threat ablak"))
     truthy(contains(texts, "Eltávolítás: 1. ablak (Sebzés)"))
-    truthy(contains(texts, "Eltávolítás: 2. ablak (Fenyegetés)"))
-    truthy(W.ClickMenu("+ Fenyegetés ablak"))
+    truthy(contains(texts, "Eltávolítás: 2. ablak (Threat)"))
+    truthy(W.ClickMenu("+ Threat ablak"))
     eq(countWindows(), 3); eq(MoteveDB.windows[3].compact, true)
     W.Fire(b, "OnClick", "LeftButton")
     truthy(W.ClickMenu("Eltávolítás: 1. ablak (Sebzés)"))
