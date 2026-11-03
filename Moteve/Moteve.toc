@@ -1,0 +1,10 @@
+## Interface: 16001
+## Title: |cff7fd8ffMo|r|cffa88bffteve|r Damage Meter
+## Notes: Light damage meter for WoW Forever on the official C_DamageMeter API.
+## Notes-huHU: Könnyű damage meter a WoW Forever hivatalos C_DamageMeter API-jára.
+## Author: Zoltán Gosztonyi
+## Version: 0.3.1
+## SavedVariables: MoteveDB
+
+Theme.lua
+Moteve.lua
