@@ -1,4 +1,4 @@
-Moteve Damage Meter 0.3.1 - WoW Forever (Interface 16001)
+Moteve Damage Meter 0.4.0 - WoW Forever (Interface 16001)
 "Arkán üveg" stílus, mint a Moteve Quest és a Moteve Chat.
 
 TELEPÍTÉS
@@ -10,14 +10,33 @@ HASZNÁLAT
     (a százalék harc után, kb. 270 px-nél szélesebb ablakban).
     A név alatt vékony, izzó, osztályszínű vonal mutatja az arányt. Lila pötty = te.
   - A fejlécben a mód neve: kattintásra lenyíló menü
-    (Sebzés, Gyógyítás, Elnyelés, Kapott sebzés, Megszakítások, Dispelek;
-    Aktuális harc / Összesített; adatok törlése; ablak zárolása).
+    (Sebzés, Gyógyítás, Elnyelés, Kapott sebzés, Megszakítások, Dispelek, Fenyegetés;
+    Aktuális harc / Összesített; adatok törlése; ablak zárolása; ablak eltávolítása).
   - Fejléc húzása: mozgatás. Jobb alsó sarok (egérrel fölé menve látszik): átméretezés.
   - Görgő: lista görgetése. Sorra vitt egér: spellenkénti bontás (harc után).
   - Lábléc: harc hossza vagy "Harcban", összesített érték és csapat-DPS.
 
+TÖBB ABLAK
+  - Legfeljebb 4 ablak, mindegyiknek saját módja, időszaka, mérete, helye és zárolása.
+    /reload után is megmaradnak. Az utolsó ablak nem távolítható el.
+
+FENYEGETÉS MÓD
+  - A csapat minden tagjának (pet nélkül) fenyegetése a célpontodon; ha nincs megtámadható
+    célpont, a fókuszon. Ha egyik sincs: "Nincs célpont". Ciánkék gyűrű = ő tankol.
+  - "Fenyegetés ablak": kompakt, 200x140-es ablak lábléc nélkül, alacsonyabb sorokkal.
+  - Az értékek néha (pl. dungeonben, harc közben) titkosak: ilyenkor a sáv és a felirat
+    frissül, de a sorok csapatsorrendben maradnak, és nincs tank-jelölés.
+
+MINIMAP GOMB
+  - Bal klikk: menü (+ Új ablak, + Fenyegetés ablak, ablakonként Eltávolítás).
+  - Jobb klikk: minden ablak megjelenítése / elrejtése. Húzás: mozgatás a minimap szélén.
+
 PARANCSOK: /moteve vagy /mtv
   toggle | show | hide | lock | unlock | reset | scale 0.5-2 | center
+  (show/hide/lock/unlock/scale/center minden ablakra vonatkozik)
+  new      - új ablak (legfeljebb 4)
+  threat   - új kompakt fenyegetés ablak
+  minimap  - minimap gomb elrejtése / megjelenítése
 
 MŰKÖDÉS
   WoW Foreveren az addonok nem férnek hozzá a combat loghoz, ezért a Moteve a Blizzard
