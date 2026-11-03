@@ -2,7 +2,7 @@ Moteve Damage Meter 0.4.0 - WoW Forever (Interface 16001)
 "Arkán üveg" stílus, mint a Moteve Quest és a Moteve Chat.
 
 TELEPÍTÉS
-  A "Moteve" mappát másold a WoW Forever Interface\AddOns mappájába, majd /reload.
+  A "Moteve Damage Meter" mappát másold a WoW Forever Interface\AddOns mappájába, majd /reload.
 
 HASZNÁLAT
   - Keret nélküli, halvány háttér; egérrel fölé menve erősebb.
