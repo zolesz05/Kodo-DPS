@@ -373,5 +373,50 @@ test("slash commands apply to every window and the usage lists the new ones", fu
     end
 end)
 
+---------------------------------------------------------------------------
+-- Addon folder, .toc and media paths
+---------------------------------------------------------------------------
+local function exists(path)
+    local fh = io.open(path, "rb")
+    if fh then fh:close() return true end
+    return false
+end
+
+test("the addon folder and its .toc are both named Moteve Damage Meter", function()
+    eq(W.ADDON, "Moteve Damage Meter")
+    truthy(exists("Moteve Damage Meter/Moteve Damage Meter.toc"), "Moteve Damage Meter/Moteve Damage Meter.toc exists")
+    eq(exists("Moteve/Moteve.toc"), false, "old Moteve/Moteve.toc is gone")
+    eq(exists("Moteve Damage Meter/Moteve.toc"), false, "no .toc with the old name in the folder")
+    local fields, files = W.ReadToc()
+    local title = fields.Title:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
+    eq(title, "Moteve Damage Meter", "## Title matches the folder name")
+    eq(fields.SavedVariables, "MoteveDB")
+    eq(#files, 2)
+    for _, file in ipairs(files) do
+        truthy(exists("Moteve Damage Meter/" .. file), "listed file exists: " .. file)
+    end
+end)
+
+test("fonts and textures resolve under Interface\\AddOns\\Moteve Damage Meter", function()
+    local ns = W.Boot()
+    local MEDIA = "Interface\\AddOns\\Moteve Damage Meter\\"
+    eq(ns.FONT_TITLE, MEDIA .. "Fonts\\Marcellus-Regular.ttf")
+    eq(ns.FONT_BODY, MEDIA .. "Fonts\\Barlow-Regular.ttf")
+    eq(ns.FONT_BODY_BOLD, MEDIA .. "Fonts\\Barlow-SemiBold.ttf")
+    eq(ns.TEX("glow"), MEDIA .. "Textures\\glow")
+    local fonts, textures = 0, 0
+    for _, path in ipairs(W.media) do
+        if path:sub(1, #MEDIA) == MEDIA then
+            -- the client path with the AddOns prefix removed is the file's path in the repository;
+            -- textures may be given without their extension
+            local file = W.ADDON .. "/" .. path:sub(#MEDIA + 1):gsub("\\", "/")
+            truthy(exists(file) or exists(file .. ".tga") or exists(file .. ".blp"), "media file exists: " .. path)
+            if file:find("/Fonts/", 1, true) then fonts = fonts + 1 else textures = textures + 1 end
+        end
+    end
+    truthy(fonts > 0, "the addon set at least one of its own fonts")
+    truthy(textures > 0, "the addon set at least one of its own textures")
+end)
+
 print(string.format("\n%d passed, %d failed", passed, failed))
 if failed > 0 then os.exit(1) end

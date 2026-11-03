@@ -4,28 +4,28 @@ A **Moteve Damage Meter** egy könnyű damage meter addon a WoW Forever klienshe
 
 **Aktuális verzió: 0.4.0**
 
-[Legfrissebb addon letöltése (ZIP)](https://github.com/zolesz05/Kodo-DPS/raw/main/downloads/Moteve.zip)
+[Legfrissebb addon letöltése (ZIP)](https://github.com/zolesz05/Kodo-DPS/raw/main/downloads/Moteve%20Damage%20Meter.zip)
 
-A `downloads` mappában mindig csak a legfrissebb telepíthető `Moteve.zip` szerepel, így frissítéskor ugyanaz a letöltési link használható.
+A `downloads` mappában mindig csak a legfrissebb telepíthető `Moteve Damage Meter.zip` szerepel, így frissítéskor ugyanaz a letöltési link használható.
 
 ## Telepítés
 
 1. Töltsd le és csomagold ki a fenti ZIP-et.
-2. Másold a `Moteve` mappát a játék `Interface/AddOns/` könyvtárába.
+2. Másold a `Moteve Damage Meter` mappát a játék `Interface/AddOns/` könyvtárába.
 3. A karakterválasztón engedélyezd a **Moteve Damage Meter** addont, majd lépj be (vagy játékban `/reload`).
 
 ```text
 Interface/
 └── AddOns/
-    └── Moteve/
-        ├── Moteve.toc
+    └── Moteve Damage Meter/
+        ├── Moteve Damage Meter.toc
         ├── Moteve.lua
         ├── Theme.lua
         ├── Fonts/
         └── Textures/
 ```
 
-A mappanevet tartsd meg: a `Moteve.toc` közvetlenül a `Moteve` mappában legyen. Ha egy új addon még nem jelenik meg a listában, indítsd újra a klienst. A `WTF` könyvtárat tartsd meg, mert abban vannak a mentett beállítások (`MoteveDB`).
+A mappanevet tartsd meg: a `Moteve Damage Meter.toc` közvetlenül a `Moteve Damage Meter` mappában legyen. Ha egy új addon még nem jelenik meg a listában, indítsd újra a klienst. A `WTF` könyvtárat tartsd meg, mert abban vannak a mentett beállítások (`MoteveDB`).
 
 ## Használat
 
@@ -103,4 +103,4 @@ A tesztek nem kerülnek a letölthető ZIP-be.
 
 Hibát az [Issues oldalon](https://github.com/zolesz05/Kodo-DPS/issues) jelezhetsz. Add meg a kliens és az addon verzióját, valamint a reprodukálás lépéseit.
 
-A teljes addon a [Moteve](Moteve/) mappában található, a [rövid játékbeli leírás](Moteve/README.txt) is ott van. A Marcellus és Barlow betűtípusok SIL Open Font License fájljai a `Moteve/Fonts/` mappában szerepelnek.
+A teljes addon a [Moteve Damage Meter](Moteve%20Damage%20Meter/) mappában található, a [rövid játékbeli leírás](Moteve%20Damage%20Meter/README.txt) is ott van. A Marcellus és Barlow betűtípusok SIL Open Font License fájljai a `Moteve Damage Meter/Fonts/` mappában szerepelnek.
