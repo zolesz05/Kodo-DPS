@@ -710,7 +710,8 @@ end
 local function UpdateFooter(win, session, mode)
     if win.compact then return end -- no footer
     local f = win.foot
-    local inCombat = InCombatLockdown() or UnitAffectingCombat("player")
+    -- a picked earlier fight is closed: never show it as live, even mid-combat
+    local inCombat = win.sessionID == nil and (InCombatLockdown() or UnitAffectingCombat("player"))
     if inCombat then
         f.liveDot:Show(); if not f.pulse:IsPlaying() then f.pulse:Play() end
         f.liveGlow:Show()

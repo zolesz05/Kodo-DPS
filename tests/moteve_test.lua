@@ -425,6 +425,21 @@ test("the row tooltip of a picked fight reads its spells by the same ID", functi
     eq(contains(W.dmCalls, "GetCombatSessionSourceFromType"), false)
 end)
 
+test("a fight picked mid-combat shows its duration in the footer, not the live marker", function()
+    pickerBoot()
+    W.inCombat = true
+    MoteveFrame:Refresh()
+    eq(MoteveFrame.foot.left:GetText(), "Harcban", "current fight is live")
+    eq(MoteveFrame.foot.liveDot:IsShown(), true)
+    pickFight(MoteveFrame, "Fight 7  ·  1:10")
+    MoteveFrame:Refresh()
+    eq(MoteveFrame.sessionID, 7)
+    eq(MoteveFrame.foot.left:GetText(), "1:10")
+    eq(MoteveFrame.foot.liveDot:IsShown(), false, "no live dot")
+    eq(MoteveFrame.foot.pulse:IsPlaying(), false, "no pulse")
+    W.inCombat = false
+end)
+
 test("a fight that is gone falls back to the current one in the same refresh", function()
     for _, broken in ipairs({ "nil", "error" }) do
         pickerBoot()
