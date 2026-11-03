@@ -1,4 +1,4 @@
-Moteve Damage Meter 0.4.0 - WoW Forever (Interface 16001)
+Moteve Damage Meter 0.5.0 - WoW Forever (Interface 16001)
 "Arkán üveg" stílus, mint a Moteve Quest és a Moteve Chat.
 
 TELEPÍTÉS
@@ -12,6 +12,10 @@ HASZNÁLAT
   - A fejlécben a mód neve: kattintásra lenyíló menü
     (Sebzés, Gyógyítás, Elnyelés, Kapott sebzés, Megszakítások, Dispelek, Fenyegetés;
     Aktuális harc / Összesített; adatok törlése; ablak zárolása; ablak eltávolítása).
+  - Jobb felső "Aktuális" felirat: harcválasztó. Az aktuális harc mellett a játék által
+    még tárolt utolsó (legfeljebb 10) lezárt harc választható, névvel és időtartammal.
+    Csak Aktuális harc időszakban, fenyegetés módon kívül. Új harc, adattörlés,
+    időszakváltás és /reload után visszaáll "Aktuális"-ra; nem mentődik.
   - Fejléc húzása: mozgatás. Jobb alsó sarok (egérrel fölé menve látszik): átméretezés.
   - Görgő: lista görgetése. Sorra vitt egér: spellenkénti bontás (harc után).
   - Lábléc: harc hossza vagy "Harcban", összesített érték és csapat-DPS.

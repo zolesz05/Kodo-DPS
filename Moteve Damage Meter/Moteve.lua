@@ -1,9 +1,10 @@
--- Moteve Damage Meter 0.4 ("arcane glass" style, like Moteve Quest / Moteve Chat)
+-- Moteve Damage Meter 0.5 ("arcane glass" style, like Moteve Quest / Moteve Chat)
 -- Built on Blizzard's C_DamageMeter API (the combat log is not available to addons on WoW Forever).
 -- In combat most values are "secret": they can be handed to widgets (StatusBar/FontString)
 -- but not compared, summed or formatted. Percentages and spell breakdowns appear after combat.
 -- Up to MAX_WINDOWS meter windows, each with its own mode, segment, size, position and lock.
 -- The threat mode reads UnitDetailedThreatSituation instead of C_DamageMeter.
+-- On the current segment the top-right picker shows one of the last closed fights by session ID.
 
 local ADDON_NAME, ns = ...
 
@@ -171,6 +172,69 @@ local function IndexOf(win)
 end
 
 ---------------------------------------------------------------------------
+-- Combat sessions: the current/overall segment by type, or an earlier fight by ID.
+-- The chosen fight lives on the frame (win.sessionID, nil = current), never in MoteveDB.
+---------------------------------------------------------------------------
+local MAX_RECENT = 10
+
+local function HasSessionAPI()
+    return DM ~= nil and DM.GetAvailableCombatSessions ~= nil and DM.GetCombatSessionFromID ~= nil
+end
+
+-- the session a window shows; an earlier fight that is gone falls back to the segment at once
+local function GetSession(win, typeId)
+    if win.sessionID ~= nil then
+        local ok, session = false, nil
+        if DM.GetCombatSessionFromID then ok, session = pcall(DM.GetCombatSessionFromID, win.sessionID, typeId) end
+        if ok and session then return session end
+        win.sessionID, win.sessionLabel = nil, nil -- pushed out by newer fights
+    end
+    local ok, session = pcall(DM.GetCombatSessionFromType, win.db.segment, typeId)
+    if ok then return session end
+end
+
+-- pcall-style result (ok, detail) for one source's spell breakdown in the shown session
+local function GetSessionSource(win, typeId, guid, creatureID)
+    if win.sessionID ~= nil then
+        if not DM.GetCombatSessionSourceFromID then return false end
+        return pcall(DM.GetCombatSessionSourceFromID, win.sessionID, typeId, guid, creatureID)
+    end
+    return pcall(DM.GetCombatSessionSourceFromType, win.db.segment, typeId, guid, creatureID)
+end
+
+-- a fight's name for the header; secret or missing names become "<sessionID>. harc"
+local function SessionName(info)
+    local name = info.name
+    if IsSecret(name) or type(name) ~= "string" or name == "" then return format("%d. harc", info.sessionID) end
+    return name
+end
+
+-- The closed fights the client still keeps, newest first, at most MAX_RECENT.
+-- Assumption: the highest sessionID is the fight shown as "Aktuális", so it is left out.
+local function RecentSessions()
+    local out = {}
+    if not HasSessionAPI() then return out end
+    local ok, list = pcall(DM.GetAvailableCombatSessions)
+    if not ok or type(list) ~= "table" then return out end
+    local infos = {}
+    for _, info in ipairs(list) do
+        if type(info) == "table" and not IsSecret(info.sessionID) and type(info.sessionID) == "number" then
+            infos[#infos + 1] = info
+        end
+    end
+    if not pcall(table.sort, infos, function(a, b) return a.sessionID > b.sessionID end) then return out end
+    for i = 2, min(#infos, MAX_RECENT + 1) do
+        local info = infos[i]
+        local name = SessionName(info)
+        local d = info.durationSeconds
+        local label = name
+        if not IsSecret(d) and type(d) == "number" and d > 0 then label = name .. "  ·  " .. Clock(d) end
+        out[#out + 1] = { id = info.sessionID, name = name, label = label }
+    end
+    return out
+end
+
+---------------------------------------------------------------------------
 -- Dropdown (one shared frame: only one menu is open at a time)
 ---------------------------------------------------------------------------
 local menu = CreateFrame("Frame", "MoteveDropdown", UIParent)
@@ -258,12 +322,17 @@ local function BuildMenu(spec)
     menu.spec = spec
 end
 
-local function ShowMenu(spec, owner, anchor)
+-- alignRight: the menu's right edge follows the anchor's (for buttons at a window's right edge)
+local function ShowMenu(spec, owner, anchor, alignRight)
     BuildMenu(spec)
     menu.owner = owner
     menu:SetScale(anchor:GetEffectiveScale() / UIParent:GetEffectiveScale())
     menu:ClearAllPoints()
-    menu:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -4)
+    if alignRight then
+        menu:SetPoint("TOPRIGHT", anchor, "BOTTOMRIGHT", 0, -4)
+    else
+        menu:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -4)
+    end
     menu:Show()
 end
 
@@ -285,10 +354,10 @@ local function OpenMenu(win, anchor)
         spec[#spec + 1] = { kind = "header", text = "SZAKASZ" }
         spec[#spec + 1] = { kind = "option", text = "Aktuális harc",
             checked = function() return win.db.segment == SESSION_CURRENT end,
-            onClick = function() win.db.segment = SESSION_CURRENT; win:ResetScroll(); win:Refresh() end }
+            onClick = function() win.db.segment = SESSION_CURRENT; win:SetSession(nil); win:ResetScroll(); win:Refresh() end }
         spec[#spec + 1] = { kind = "option", text = "Összesített",
             checked = function() return win.db.segment == SESSION_OVERALL end,
-            onClick = function() win.db.segment = SESSION_OVERALL; win:ResetScroll(); win:Refresh() end }
+            onClick = function() win.db.segment = SESSION_OVERALL; win:SetSession(nil); win:ResetScroll(); win:Refresh() end }
     end
     spec[#spec + 1] = { kind = "sep" }
     spec[#spec + 1] = { kind = "option", text = "Adatok törlése", danger = true, onClick = function() ResetData() end }
@@ -298,6 +367,33 @@ local function OpenMenu(win, anchor)
         onClick = function() RemoveWindow(win) end }
 
     ShowMenu(spec, win, anchor)
+end
+
+-- the fight picker can only be used on the current segment of a C_DamageMeter mode
+local function SessionPickable(win, mode)
+    return mode.kind ~= "threat" and win.db.segment == SESSION_CURRENT and HasSessionAPI()
+end
+
+-- the dropdown at a window's top right: the current fight or an earlier one
+local function OpenSessionMenu(win, anchor)
+    if menu:IsShown() then menu:Hide() return end
+    if not SessionPickable(win, MODES[win.db.mode]) then return end
+    local spec = {
+        { kind = "header", text = "HARC" },
+        { kind = "option", text = "Aktuális",
+            checked = function() return win.sessionID == nil end,
+            onClick = function() win:SetSession(nil); win:Refresh() end },
+    }
+    local list = RecentSessions()
+    if #list > 0 then spec[#spec + 1] = { kind = "sep" } end
+    for _, s in ipairs(list) do
+        spec[#spec + 1] = {
+            kind = "option", text = s.label,
+            checked = function() return win.sessionID == s.id end,
+            onClick = function() win:SetSession(s.id, s.name); win:Refresh() end,
+        }
+    end
+    ShowMenu(spec, win, anchor, true)
 end
 
 ---------------------------------------------------------------------------
@@ -347,7 +443,7 @@ local function RowTooltip(win, row)
         return
     end
 
-    local ok, detail = pcall(DM.GetCombatSessionSourceFromType, win.db.segment, mode.id, guid, src.sourceCreatureID)
+    local ok, detail = GetSessionSource(win, mode.id, guid, src.sourceCreatureID)
     local spells = ok and detail and detail.combatSpells
     if not spells or #spells == 0 then
         GameTooltip:AddLine("Nincs spell-adat.", C.muted[1], C.muted[2], C.muted[3])
@@ -576,18 +672,46 @@ local function FillThreatRow(win, row, rank, e)
     row:Show()
 end
 
+-- The top-right label is a button: with a chevron and clickable only when the fight picker
+-- can be used. Its width is capped so a long fight name never runs into the mode button.
+local function SetSegLabel(win, text, pickable)
+    local b, fs, L = win.segBtn, win.segText, win.L
+    b.pickable = pickable
+    b:EnableMouse(pickable)
+    b.chev:SetShown(pickable)
+    if not pickable then b.hl:Hide() end
+    fs:ClearAllPoints()
+    if pickable then fs:SetPoint("RIGHT", b.chev, "LEFT", -5, 1) else fs:SetPoint("RIGHT", -5, 0) end
+    fs:SetWidth(0)
+    fs:SetText(text)
+    local textW = (fs.GetUnboundedStringWidth and fs:GetUnboundedStringWidth()) or fs:GetStringWidth() or 0
+    local extra = pickable and 23 or 10 -- inner padding, chevron and its gap
+    local left = L.pad + win.title:GetStringWidth() + 6 + win.modeBtn:GetWidth() + 8
+    local room = (win:GetWidth() or 0) - left - (L.pad - 5) - extra
+    textW = min(ceil(textW), max(24, floor(room)))
+    fs:SetWidth(textW)
+    b:SetWidth(textW + extra)
+end
+
 local function UpdateHeader(win, mode)
     win.modeBtn.text:SetText(mode.label)
     win.modeBtn:SetWidth(win.modeBtn.text:GetStringWidth() + 22)
     if mode.kind ~= "threat" then
-        win.segText:SetText(win.db.segment == SESSION_OVERALL and "Összesített" or "Aktuális")
+        local text = "Aktuális"
+        if win.db.segment == SESSION_OVERALL then
+            text = "Összesített"
+        elseif win.sessionID ~= nil then
+            text = win.sessionLabel or format("%d. harc", win.sessionID)
+        end
+        SetSegLabel(win, text, SessionPickable(win, mode))
     end
 end
 
 local function UpdateFooter(win, session, mode)
     if win.compact then return end -- no footer
     local f = win.foot
-    local inCombat = InCombatLockdown() or UnitAffectingCombat("player")
+    -- a picked earlier fight is closed: never show it as live, even mid-combat
+    local inCombat = win.sessionID == nil and (InCombatLockdown() or UnitAffectingCombat("player"))
     if inCombat then
         f.liveDot:Show(); if not f.pulse:IsPlaying() then f.pulse:Play() end
         f.liveGlow:Show()
@@ -667,7 +791,7 @@ end
 local function RefreshThreat(win, n, mode)
     UpdateFooter(win, nil, mode)
     local mob = ThreatMob()
-    win.segText:SetText(mob == "focus" and "Fókusz" or "Célpont")
+    SetSegLabel(win, mob == "focus" and "Fókusz" or "Célpont", false)
     if not mob then
         return ShowEmpty(win, n, "Nincs célpont", "Jelölj ki egy ellenfelet vagy egy fókuszt.")
     end
@@ -711,6 +835,13 @@ local Window = {}
 
 function Window:ResetScroll() self.scrollOffset = 0 end
 
+-- shows an earlier fight (id, name) or, with nil, the current one again; not saved
+function Window:SetSession(id, name)
+    if self.sessionID ~= id then self.scrollOffset = 0 end
+    self.sessionID, self.sessionLabel = id, id ~= nil and name or nil
+    self.dirty = true
+end
+
 function Window:Refresh()
     local db = self.db
     if not db or not self:IsShown() then return end
@@ -732,8 +863,9 @@ function Window:Refresh()
         return ShowEmpty(self, n, "A damage meter most nem elérhető", reason)
     end
 
-    local ok, session = pcall(DM.GetCombatSessionFromType, db.segment, mode.id)
-    if not ok then session = nil end
+    local picked = self.sessionID
+    local session = GetSession(self, mode.id)
+    if picked ~= nil and self.sessionID == nil then UpdateHeader(self, mode) end -- fell back to current
     UpdateFooter(self, session, mode)
 
     local sources = session and session.combatSources
@@ -806,7 +938,9 @@ function Window:ApplyLayout()
     self.header:SetHeight(L.headerH)
     self.modeBtn:SetHeight(L.headerH - 6)
     self.title:SetPoint("LEFT", L.pad, -1)
-    self.segText:SetPoint("RIGHT", -L.pad, -1)
+    self.segBtn:SetHeight(L.headerH - 6)
+    self.segBtn:ClearAllPoints()
+    self.segBtn:SetPoint("RIGHT", -(L.pad - 5), -1)
     self.content:ClearAllPoints()
     self.content:SetPoint("TOPLEFT", 0, -L.headerH - L.pad)
     self.content:SetPoint("BOTTOMRIGHT", 0, L.footerH + L.pad)
@@ -820,6 +954,7 @@ function Window:Bind(cfg)
     self.compact = cfg.compact == true
     self.L = Layout(self.compact)
     self.scrollOffset = 0
+    self.sessionID, self.sessionLabel = nil, nil
     self.hovered = nil
     self:ApplyLayout()
     self:SetScale(cfg.scale)
@@ -902,8 +1037,19 @@ local function BuildFrame(slot)
     modeBtn:SetScript("OnLeave", function() modeHl:Hide() end)
     win.modeBtn = modeBtn
 
-    win.segText = Font(header, 11, C.muted, "RIGHT")
-    win.segText:SetPoint("RIGHT", -L.pad, -1)
+    -- top right: segment label, or the fight picker on the current segment (see SetSegLabel)
+    local segBtn = CreateFrame("Button", nil, header) -- placed by ApplyLayout
+    segBtn.hl = ns.Slice(segBtn, "round", 0.25, "BACKGROUND", 1):Fit(segBtn, 6)
+    segBtn.hl:SetColor({ 1, 1, 1 }, 0.07); segBtn.hl:Hide()
+    segBtn.chev = Chevron(segBtn)
+    segBtn.chev:SetPoint("RIGHT", -5, -1)
+    segBtn:SetScript("OnClick", function(self) OpenSessionMenu(win, self) end)
+    segBtn:SetScript("OnEnter", function(self) if self.pickable then self.hl:Show() end end)
+    segBtn:SetScript("OnLeave", function(self) self.hl:Hide() end)
+    win.segBtn = segBtn
+    win.segText = Font(segBtn, 11, C.muted, "RIGHT")
+    win.segText:SetWordWrap(false)
+    win.segText:SetPoint("RIGHT", -5, 0)
 
     -- footer
     local footer = CreateFrame("Frame", nil, win)
@@ -1045,6 +1191,7 @@ ResetData = function()
     local ok = DM and pcall(DM.ResetAllCombatSessions)
     if not ok then Print("a törlés most nem engedélyezett.") end
     for _, w in ipairs(windows) do
+        w:SetSession(nil)
         w.scrollOffset = 0
         w:Refresh()
     end
@@ -1185,6 +1332,10 @@ driver:SetScript("OnEvent", function(self, event, arg1)
         mm:SetShown(not MoteveDB.minimap.hide)
         self:UnregisterEvent("ADDON_LOADED")
         return
+    end
+    -- a new fight or a reset brings every window back to the current fight
+    if event == "PLAYER_REGEN_DISABLED" or event == "DAMAGE_METER_RESET" then
+        for _, w in ipairs(windows) do w:SetSession(nil) end
     end
     -- threat events fire often: they only wake windows that show threat
     local threatOnly = THREAT_EVENTS[event]

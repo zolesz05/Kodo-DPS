@@ -2,7 +2,7 @@
 
 A **Moteve Damage Meter** egy könnyű damage meter addon a WoW Forever klienshez. A játék beépített `C_DamageMeter` adataiból mutatja a sebzést, gyógyítást, elnyelést, kapott sebzést, megszakításokat és dispeleket, egy külön módban pedig a csapat fenyegetését a célpontodon. Egyszerre legfeljebb négy ablak lehet nyitva, a Moteve addonok „arkán üveg” stílusában: keret nélkül, halvány háttérrel és vékony, izzó, kasztszínű vonalakkal.
 
-**Aktuális verzió: 0.4.0**
+**Aktuális verzió: 0.5.0**
 
 [Legfrissebb addon letöltése (ZIP)](https://github.com/zolesz05/Kodo-DPS/raw/main/downloads/Moteve%20Damage%20Meter.zip)
 
@@ -36,6 +36,7 @@ A mappanevet tartsd meg: a `Moteve Damage Meter.toc` közvetlenül a `Moteve Dam
   - mód: **Sebzés**, **Gyógyítás**, **Elnyelés**, **Kapott sebzés**, **Megszakítások**, **Dispelek**, **Fenyegetés**;
   - időszak: **Aktuális harc** vagy **Összesített** (fenyegetés módban nincs);
   - adatok törlése, az ablak zárolása és **Ablak eltávolítása**.
+- A fejléc jobb felső sarkában az **Aktuális** felirat egy harcválasztó. Rákattintva az aktuális harc mellett a játék által még tárolt korábbi, lezárt harcok közül választhatsz: legfeljebb 10 közül, a legújabb van elöl, névvel és időtartammal. Az ablak ekkor annak a harcnak a sorait, spellenkénti bontását és összesítő sorát mutatja, a fejlécben pedig a harc neve látszik. Ha a név nem ismert vagy titkos, „N. harc” jelenik meg. A választó csak **Aktuális harc** időszakban és fenyegetés módon kívül működik. Új harc kezdetekor, az adatok törlésekor, időszakváltáskor és `/reload` után az ablak visszaáll **Aktuális**-ra. A kiválasztás ablakonként külön van, és nem mentődik. Ha a kiválasztott harcot a játék már nem tárolja, az ablak az aktuális harcot mutatja.
 - A fejléc húzásával mozgatható, a jobb alsó saroknál fogva (rámutatáskor látszik) átméretezhető. A hely és a méret mentődik.
 - Egérgörgővel a lista görgethető. Egy sorra mutatva harc után spellenkénti bontás jelenik meg.
 - A láblécben a harc hossza vagy a „Harcban” felirat, az összesített érték és a csapat-DPS látható.
