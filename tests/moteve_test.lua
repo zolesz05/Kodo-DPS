@@ -699,5 +699,38 @@ test("fonts and textures resolve under Interface\\AddOns\\Moteve Damage Meter", 
     truthy(textures > 0, "the addon set at least one of its own textures")
 end)
 
+test("the download ZIP stores its folders as drwxr-xr-x and its files as -rw-r--r--", function()
+    local f = assert(io.open("downloads/Moteve Damage Meter.zip", "rb"))
+    local data = f:read("*a")
+    f:close()
+    local function u16(i) local a, b = data:byte(i, i + 1); return a + b * 256 end
+    local function u32(i) return u16(i) + u16(i + 2) * 65536 end
+    local eocd
+    for i = #data - 21, 1, -1 do
+        if data:sub(i, i + 3) == "PK\5\6" then eocd = i; break end
+    end
+    truthy(eocd, "end of central directory found")
+    local count, pos = u16(eocd + 10), u32(eocd + 16) + 1
+    local dirs, files = 0, 0
+    for _ = 1, count do
+        eq(data:sub(pos, pos + 3), "PK\1\2", "central directory entry signature")
+        local nameLen, extraLen, commentLen = u16(pos + 28), u16(pos + 30), u16(pos + 32)
+        local name = data:sub(pos + 46, pos + 45 + nameLen)
+        eq(data:byte(pos + 5), 3, "made on Unix: " .. name)
+        local mode, dosAttr = u16(pos + 40), data:byte(pos + 38)
+        if name:sub(-1) == "/" then
+            dirs = dirs + 1
+            eq(mode, 16877, "mode 040755 of " .. name)
+            eq(dosAttr % 32 >= 16, true, "DOS directory bit of " .. name)
+        else
+            files = files + 1
+            eq(mode, 33188, "mode 0100644 of " .. name)
+        end
+        pos = pos + 46 + nameLen + extraLen + commentLen
+    end
+    eq(dirs, 3)
+    truthy(files > 0, "the ZIP holds files")
+end)
+
 print(string.format("\n%d passed, %d failed", passed, failed))
 if failed > 0 then os.exit(1) end
