@@ -304,6 +304,263 @@ test("the Fenyegetés ablak preset is a compact 200x140 threat window", function
 end)
 
 ---------------------------------------------------------------------------
+-- Earlier fights (top-right picker, C_DamageMeter session IDs)
+---------------------------------------------------------------------------
+-- sessions 1..n named "Fight <id>", <id>*10 seconds long, handed out in a shuffled order
+local function pastFights(n)
+    local list = {}
+    for id = 1, n, 2 do list[#list + 1] = { sessionID = id, name = "Fight " .. id, durationSeconds = id * 10 } end
+    for id = 2, n, 2 do list[#list + 1] = { sessionID = id, name = "Fight " .. id, durationSeconds = id * 10 } end
+    return list
+end
+
+local CURRENT_SESSION = {
+    totalAmount = 30, durationSeconds = 5,
+    combatSources = { { name = "Now", totalAmount = 30, amountPerSecond = 6, classFilename = "MAGE", sourceGUID = "g-now" } },
+}
+
+local OLD_SESSION = {
+    totalAmount = 500, durationSeconds = 70, maxAmount = 300,
+    combatSources = {
+        { name = "Old1", totalAmount = 200, amountPerSecond = 3, classFilename = "MAGE", sourceGUID = "g-1", sourceCreatureID = 0 },
+        { name = "Old2", totalAmount = 300, amountPerSecond = 4, classFilename = "ROGUE", sourceGUID = "g-2", sourceCreatureID = 0 },
+    },
+}
+
+local function pickerBoot(db)
+    W.Boot({ db = db, sessions = pastFights(13), sessionsByID = { [7] = OLD_SESSION } })
+    W.session = CURRENT_SESSION
+    for _, w in ipairs({ MoteveFrame, MoteveFrame2 }) do w:Refresh() end
+end
+
+local function pickFight(win, label)
+    MoteveDropdown:Hide()
+    W.ClickSegment(win)
+    truthy(MoteveDropdown:IsShown(), "picker opened")
+    truthy(W.ClickMenu(label), "menu item " .. label)
+end
+
+test("the SZAKASZ part of the mode menu still holds exactly Aktuális harc and Összesített", function()
+    pickerBoot()
+    W.Fire(MoteveFrame.modeBtn, "OnClick")
+    local spec, at = MoteveDropdown.spec, nil
+    for i, s in ipairs(spec) do if s.kind == "header" and s.text == "SZAKASZ" then at = i end end
+    truthy(at, "SZAKASZ header")
+    eq(spec[at + 1].kind, "option"); eq(spec[at + 1].text, "Aktuális harc")
+    eq(spec[at + 2].kind, "option"); eq(spec[at + 2].text, "Összesített")
+    eq(spec[at + 3].kind, "sep")
+    for _, t in ipairs(W.MenuTexts()) do truthy(not t:find("Fight", 1, true), "no fight in the mode menu: " .. t) end
+end)
+
+test("the picker lists Aktuális, then at most 10 fights by descending ID without the highest", function()
+    pickerBoot()
+    eq(MoteveFrame.segText:GetText(), "Aktuális")
+    eq(MoteveFrame.segBtn.chev:IsShown(), true)
+    W.ClickSegment(MoteveFrame)
+    eq(MoteveDropdown:IsShown(), true)
+    eq(MoteveDropdown.owner, MoteveFrame)
+    local spec = MoteveDropdown.spec
+    eq(spec[1].kind, "header"); eq(spec[1].text, "HARC")
+    eq(spec[2].text, "Aktuális"); eq(spec[2].checked(), true)
+    eq(spec[3].kind, "sep")
+    local texts = W.MenuTexts()
+    eq(#texts, 11, "Aktuális + 10 fights")
+    eq(texts[1], "Aktuális")
+    for i = 2, 11 do
+        local id = 14 - i -- 12, 11, ..., 3
+        eq(texts[i], string.format("Fight %d  ·  %d:%02d", id, math.floor(id * 10 / 60), id * 10 % 60))
+    end
+    truthy(contains(W.dmCalls, "GetAvailableCombatSessions"))
+end)
+
+test("a secret or missing fight name falls back to N. harc next to the duration", function()
+    W.Boot({ sessions = {
+        { sessionID = 9, name = "Top", durationSeconds = 1 },
+        { sessionID = 8, name = W.Secret("Boss"), durationSeconds = 95 },
+        { sessionID = 7, durationSeconds = 61 },
+        { sessionID = 6, name = "", durationSeconds = 5 },
+        { sessionID = 5, name = "No clock" },
+        { sessionID = W.Secret(4), name = "Secret ID" },
+    } })
+    MoteveFrame:Refresh()
+    W.ClickSegment(MoteveFrame)
+    local texts = W.MenuTexts()
+    eq(#texts, 5)
+    eq(texts[2], "8. harc  ·  1:35")
+    eq(texts[3], "7. harc  ·  1:01")
+    eq(texts[4], "6. harc  ·  0:05")
+    eq(texts[5], "No clock")
+    truthy(W.ClickMenu("8. harc  ·  1:35"))
+    eq(MoteveFrame.segText:GetText(), "8. harc")
+end)
+
+test("a picked fight is read by ID: rows, header and footer show that fight", function()
+    pickerBoot()
+    W.dmCalls, W.dmArgs = {}, {}
+    pickFight(MoteveFrame, "Fight 7  ·  1:10")
+    eq(MoteveFrame.sessionID, 7)
+    local id, typeId = W.LastDMArgs("GetCombatSessionFromID")
+    eq(id, 7); eq(typeId, 0)
+    eq(contains(W.dmCalls, "GetCombatSessionFromType"), false, "no FromType call")
+    local rows = shownRows(MoteveFrame)
+    eq(#rows, 2)
+    eq(rows[1].name:GetText(), "Old2"); eq(rows[1].total:GetText(), "300")
+    eq(rows[2].name:GetText(), "Old1")
+    eq(MoteveFrame.foot.total:GetText(), "500")
+    eq(MoteveFrame.foot.left:GetText(), "1:10")
+    eq(MoteveFrame.segText:GetText(), "Fight 7")
+    -- the other window still shows the current fight
+    W.ClickSegment(MoteveFrame)
+    eq(MoteveDropdown.spec[2].checked(), false)
+    MoteveDropdown:Hide()
+end)
+
+test("the row tooltip of a picked fight reads its spells by the same ID", function()
+    pickerBoot()
+    pickFight(MoteveFrame, "Fight 7  ·  1:10")
+    W.dmCalls, W.dmArgs = {}, {}
+    W.Fire(shownRows(MoteveFrame)[1], "OnEnter")
+    local id, typeId, guid = W.LastDMArgs("GetCombatSessionSourceFromID")
+    eq(id, 7); eq(typeId, 0); eq(guid, "g-2")
+    eq(contains(W.dmCalls, "GetCombatSessionSourceFromType"), false)
+end)
+
+test("a fight that is gone falls back to the current one in the same refresh", function()
+    for _, broken in ipairs({ "nil", "error" }) do
+        pickerBoot()
+        pickFight(MoteveFrame, "Fight 7  ·  1:10")
+        eq(MoteveFrame.sessionID, 7)
+        if broken == "nil" then
+            W.sessionsByID[7] = nil
+        else
+            C_DamageMeter.GetCombatSessionFromID = function() error("session expired") end
+        end
+        W.dmCalls = {}
+        MoteveFrame:Refresh()
+        eq(MoteveFrame.sessionID, nil, broken .. ": sessionID cleared")
+        truthy(contains(W.dmCalls, "GetCombatSessionFromType"), broken .. ": FromType called")
+        eq(shownRows(MoteveFrame)[1].name:GetText(), "Now", broken .. ": current rows")
+        eq(MoteveFrame.segText:GetText(), "Aktuális", broken .. ": header")
+    end
+end)
+
+test("PLAYER_REGEN_DISABLED brings every window back to the current fight", function()
+    pickerBoot({ windows = { { mode = 1 }, { mode = 2 } } })
+    pickFight(MoteveFrame, "Fight 7  ·  1:10")
+    pickFight(MoteveFrame2, "Fight 5  ·  0:50")
+    eq(MoteveFrame.sessionID, 7); eq(MoteveFrame2.sessionID, 5)
+    W.FireEvent("PLAYER_REGEN_DISABLED")
+    eq(MoteveFrame.sessionID, nil); eq(MoteveFrame2.sessionID, nil)
+    W.Update(0.2)
+    eq(MoteveFrame.segText:GetText(), "Aktuális"); eq(MoteveFrame2.segText:GetText(), "Aktuális")
+end)
+
+test("DAMAGE_METER_RESET, Adatok törlése and /moteve reset bring back the current fight", function()
+    local resets = {
+        function() W.FireEvent("DAMAGE_METER_RESET") end,
+        function() W.Fire(MoteveFrame.modeBtn, "OnClick"); truthy(W.ClickMenu("Adatok törlése")) end,
+        function() W.Slash("reset") end,
+    }
+    for i, reset in ipairs(resets) do
+        pickerBoot({ windows = { { mode = 1 }, { mode = 1 } } })
+        pickFight(MoteveFrame, "Fight 7  ·  1:10")
+        pickFight(MoteveFrame2, "Fight 7  ·  1:10")
+        reset()
+        eq(MoteveFrame.sessionID, nil, "reset " .. i .. " window 1")
+        eq(MoteveFrame2.sessionID, nil, "reset " .. i .. " window 2")
+    end
+end)
+
+test("switching the segment drops the picked fight, switching the mode keeps it", function()
+    pickerBoot()
+    pickFight(MoteveFrame, "Fight 7  ·  1:10")
+    W.Fire(MoteveFrame.modeBtn, "OnClick"); truthy(W.ClickMenu("Gyógyítás"))
+    eq(MoteveFrame.sessionID, 7)
+    local _, typeId = W.LastDMArgs("GetCombatSessionFromID")
+    eq(typeId, 2, "healing read from the picked fight")
+    W.Fire(MoteveFrame.modeBtn, "OnClick"); truthy(W.ClickMenu("Aktuális harc"))
+    eq(MoteveFrame.sessionID, nil)
+    pickFight(MoteveFrame, "Fight 7  ·  1:10")
+    W.Fire(MoteveFrame.modeBtn, "OnClick"); truthy(W.ClickMenu("Összesített"))
+    eq(MoteveFrame.sessionID, nil)
+end)
+
+test("no picker on the overall segment or in threat mode", function()
+    W.Boot({ db = { windows = { { mode = 1, segment = 0 }, { mode = THREAT } } },
+        sessions = pastFights(5), units = GROUP, attackable = { target = true } })
+    MoteveFrame:Refresh(); MoteveFrame2:Refresh()
+    eq(MoteveFrame.segText:GetText(), "Összesített")
+    eq(MoteveFrame.segBtn.chev:IsShown(), false)
+    W.ClickSegment(MoteveFrame)
+    eq(MoteveDropdown:IsShown(), false, "no menu on Összesített")
+    eq(MoteveFrame2.segText:GetText(), "Célpont")
+    eq(MoteveFrame2.segBtn.chev:IsShown(), false)
+    W.ClickSegment(MoteveFrame2)
+    eq(MoteveDropdown:IsShown(), false, "no menu in threat mode")
+    W.units.target = nil; W.units.focus = { name = "Boss" }
+    MoteveFrame2:Refresh()
+    eq(MoteveFrame2.segText:GetText(), "Fókusz")
+    W.ClickSegment(MoteveFrame2)
+    eq(MoteveDropdown:IsShown(), false)
+end)
+
+test("without GetAvailableCombatSessions the picker stays shut and the type API is used", function()
+    pickerBoot()
+    C_DamageMeter.GetAvailableCombatSessions = nil
+    W.dmCalls = {}
+    MoteveFrame:Refresh()
+    eq(MoteveFrame.segText:GetText(), "Aktuális")
+    eq(MoteveFrame.segBtn.chev:IsShown(), false)
+    W.ClickSegment(MoteveFrame)
+    eq(MoteveDropdown:IsShown(), false)
+    eq(MoteveFrame.sessionID, nil)
+    truthy(contains(W.dmCalls, "GetCombatSessionFromType"))
+    eq(contains(W.dmCalls, "GetCombatSessionFromID"), false)
+end)
+
+test("the picked fight is not saved and a reload starts on Aktuális", function()
+    pickerBoot()
+    pickFight(MoteveFrame, "Fight 7  ·  1:10")
+    eq(MoteveFrame.sessionID, 7)
+    for k in pairs(MoteveDB.windows[1]) do
+        truthy(k ~= "sessionID" and k ~= "sessionLabel", "saved key " .. tostring(k))
+    end
+    W.Boot({ db = MoteveDB, sessions = pastFights(13), sessionsByID = { [7] = OLD_SESSION } })
+    eq(MoteveFrame.sessionID, nil)
+end)
+
+test("the picker opens right-aligned, the other menus stay left-aligned", function()
+    pickerBoot()
+    W.ClickSegment(MoteveFrame)
+    local p, rel, rp = MoteveDropdown:GetPoint()
+    eq(p, "TOPRIGHT"); eq(rel, MoteveFrame.segBtn); eq(rp, "BOTTOMRIGHT")
+    eq(#MoteveDropdown._points, 1)
+    MoteveDropdown:Hide()
+    W.Fire(MoteveFrame.modeBtn, "OnClick")
+    p, rel, rp = MoteveDropdown:GetPoint()
+    eq(p, "TOPLEFT"); eq(rel, MoteveFrame.modeBtn); eq(rp, "BOTTOMLEFT")
+    MoteveDropdown:Hide()
+    W.Fire(MoteveMinimapButton, "OnClick", "LeftButton")
+    p, rel, rp = MoteveDropdown:GetPoint()
+    eq(p, "TOPLEFT"); eq(rel, MoteveMinimapButton); eq(rp, "BOTTOMLEFT")
+end)
+
+test("a long fight name is cut so it does not reach the mode button", function()
+    local long = string.rep("Very long boss name ", 4)
+    W.Boot({ db = { windows = { { mode = 1, compact = true, w = 200, h = 140 } } },
+        sessions = { { sessionID = 2, name = "Top" }, { sessionID = 1, name = long, durationSeconds = 30 } },
+        sessionsByID = { [1] = OLD_SESSION } })
+    MoteveFrame:Refresh()
+    pickFight(MoteveFrame, long .. "  ·  0:30")
+    eq(MoteveFrame.segText:GetText(), long)
+    local L = MoteveFrame.L
+    local modeRight = L.pad + MoteveFrame.title:GetStringWidth() + 6 + MoteveFrame.modeBtn:GetWidth()
+    local btnLeft = MoteveFrame:GetWidth() - (L.pad - 5) - MoteveFrame.segBtn:GetWidth()
+    truthy(btnLeft >= modeRight, string.format("button starts at %d, mode button ends at %d", btnLeft, modeRight))
+    truthy(MoteveFrame.segText:GetWidth() < MoteveFrame.segText:GetStringWidth(), "text width capped")
+end)
+
+---------------------------------------------------------------------------
 -- Minimap button
 ---------------------------------------------------------------------------
 test("minimap angle and hide flag are read on load", function()

@@ -123,6 +123,9 @@ function M.Boot(opts)
     M.widgets = {}
     M.printed = {}
     M.dmCalls = {}
+    M.dmArgs = {}     -- { name, arg1, arg2, ... } for every C_DamageMeter call
+    M.sessions = opts.sessions or {}         -- GetAvailableCombatSessions()
+    M.sessionsByID = opts.sessionsByID or {} -- GetCombatSessionFromID(id)
     M.threatCalls = {}
     M.units = opts.units or { player = { name = "Me", class = "WARRIOR" } }
     M.raid, M.party = opts.raid or false, opts.party or false
@@ -183,6 +186,7 @@ function M.Boot(opts)
     local function dm(name, ret)
         return function(...)
             M.dmCalls[#M.dmCalls + 1] = name
+            M.dmArgs[#M.dmArgs + 1] = { name, ... }
             if type(ret) == "function" then return ret(...) end
             return ret
         end
@@ -194,6 +198,9 @@ function M.Boot(opts)
         end),
         GetCombatSessionSourceFromType = dm("GetCombatSessionSourceFromType", function() return { combatSpells = {} } end),
         ResetAllCombatSessions = dm("ResetAllCombatSessions"),
+        GetAvailableCombatSessions = dm("GetAvailableCombatSessions", function() return M.sessions end),
+        GetCombatSessionFromID = dm("GetCombatSessionFromID", function(id) return M.sessionsByID[id] end),
+        GetCombatSessionSourceFromID = dm("GetCombatSessionSourceFromID", function() return { combatSpells = {} } end),
     }
     _G.Enum = { DamageMeterType = {}, DamageMeterSessionType = { Overall = 0, Current = 1 } }
 
@@ -240,6 +247,17 @@ function M.ClickMenu(text)
         end
     end
     return false
+end
+
+-- clicks the top-right segment / fight picker button of a window
+function M.ClickSegment(win) Fire(win.segBtn, "OnClick") end
+
+-- the arguments of the last C_DamageMeter call with this name, or nil
+function M.LastDMArgs(name)
+    for i = #M.dmArgs, 1, -1 do
+        local c = M.dmArgs[i]
+        if c[1] == name then return select(2, unpack(c)) end
+    end
 end
 
 function M.MenuTexts()
