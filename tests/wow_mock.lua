@@ -84,6 +84,13 @@ function Widget:GetPoint(i)
     if pt then return pt[1], pt[2], pt[3], pt[4], pt[5] end
 end
 function Widget:GetCenter() return 100, 100 end
+-- every texture and font file the addon asks the client for, in M.media
+function Widget:SetTexture(path)
+    if type(path) == "string" then M.media[#M.media + 1] = path end
+end
+function Widget:SetFont(path)
+    if type(path) == "string" then M.media[#M.media + 1] = path end
+end
 function Widget:SetText(t) self._text = t end
 function Widget:GetText() return self._text end
 function Widget:GetStringWidth()
@@ -116,12 +123,40 @@ for _, mm in ipairs({ "__lt", "__le", "__add", "__sub", "__mul", "__div", "__mod
 end
 function M.Secret(v) return setmetatable({ __secret = true, v = v }, SecretMeta) end
 
+-- The client identifies an addon by its folder name and loads the .toc of the same name
+-- inside it; that name is also the first value of `...` in every file of the addon.
+M.ADDON = "Moteve Damage Meter"
+M.TOC = M.ADDON .. "/" .. M.ADDON .. ".toc"
+
+-- Reads a .toc file: returns its "## Key: Value" fields and the list of files it loads.
+function M.ReadToc(path)
+    local fh = assert(io.open(path or M.TOC, "r"))
+    local fields, files = {}, {}
+    for line in fh:lines() do
+        line = line:gsub("\r$", "")
+        local key, value = line:match("^##%s*([^:]+):%s*(.-)%s*$")
+        if key then
+            fields[key] = value
+        elseif line:match("%S") and not line:match("^#") then
+            files[#files + 1] = line:match("^%s*(.-)%s*$")
+        end
+    end
+    fh:close()
+    return fields, files
+end
+
+function M.TocFiles()
+    local _, files = M.ReadToc()
+    return files
+end
+
 -- Resets the client state and loads the addon with the given saved variables.
 -- opts.db: MoteveDB before ADDON_LOADED. Returns the addon namespace.
 function M.Boot(opts)
     opts = opts or {}
     M.widgets = {}
     M.printed = {}
+    M.media = {}
     M.dmCalls = {}
     M.dmArgs = {}     -- { name, arg1, arg2, ... } for every C_DamageMeter call
     M.sessions = opts.sessions or {}         -- GetAvailableCombatSessions()
@@ -206,11 +241,11 @@ function M.Boot(opts)
 
     _G.MoteveDB = opts.db
     local ns = {}
-    for _, file in ipairs({ "Moteve/Theme.lua", "Moteve/Moteve.lua" }) do
-        local chunk = assert(loadfile(file))
-        chunk("Moteve", ns)
+    for _, file in ipairs(M.TocFiles()) do
+        local chunk = assert(loadfile(M.ADDON .. "/" .. file))
+        chunk(M.ADDON, ns)
     end
-    M.FireEvent("ADDON_LOADED", "Moteve")
+    M.FireEvent("ADDON_LOADED", M.ADDON)
     return ns
 end
 
